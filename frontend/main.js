@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const showLoginBtn = document.getElementById("show-login");
     const showRegisterBtn = document.getElementById("show-register");
 
-    const API_URL = import.meta.env.VITE_BACKEND_URL + "/api";
+    const API_URL = window.BACKEND_URL + "/api";
 
     const toggleActiveClass = (activeButton, inactiveButton) => {
         activeButton.classList.add("active");

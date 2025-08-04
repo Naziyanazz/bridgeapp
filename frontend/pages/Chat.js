@@ -15,7 +15,7 @@
 
   // ✅ Initialize socket connection only once
   if (!window.ChatGlobals) {
-    const API_URL = import.meta.env.VITE_BACKEND_URL + "/api";
+    const API_URL = window.BACKEND_URL + "/api";
     const socket = io(API_URL.replace("/api", ""), {
       withCredentials: true,
       auth: { token: localStorage.getItem("token") }
@@ -207,46 +207,46 @@
       this.elements.chatHeader.innerText = `Chat - Logged in as: ${this.currentUser?.name || ""}${otherUserName ? ` | Chatting with: ${otherUserName}` : ""}`;
     },
 
-   async createOrSwitchChat(otherId) {
-  try {
-    const res = await fetch(`${window.ChatGlobals.API_URL}/chats`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-      },
-      body: JSON.stringify({ userId: otherId })
-    });
+    async createOrSwitchChat(otherId) {
+      try {
+        const res = await fetch(`${window.ChatGlobals.API_URL}/chats`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify({ userId: otherId })
+        });
 
-    if (!res.ok) {
-      const errorMsg = await res.text();
-      throw new Error(`❌ Failed to create/switch chat: ${res.status} ${errorMsg}`);
-    }
+        if (!res.ok) {
+          const errorMsg = await res.text();
+          throw new Error(`❌ Failed to create/switch chat: ${res.status} ${errorMsg}`);
+        }
 
-    const chat = await res.json();
+        const chat = await res.json();
 
-    if (!chat || !chat._id) {
-      throw new Error("❌ Chat creation response is invalid.");
-    }
+        if (!chat || !chat._id) {
+          throw new Error("❌ Chat creation response is invalid.");
+        }
 
-    this.currentChatId = chat._id;
-    this.receiverInput.chatId = chat._id;
-    this.receiverInput.receiverId = otherId;
-    localStorage.setItem("chatId", chat._id);
+        this.currentChatId = chat._id;
+        this.receiverInput.chatId = chat._id;
+        this.receiverInput.receiverId = otherId;
+        localStorage.setItem("chatId", chat._id);
 
-    console.log("🔄 Switched to chat:", this.currentChatId);
-    window.ChatGlobals.socket.emit("joinChat", this.currentChatId);
+        console.log("🔄 Switched to chat:", this.currentChatId);
+        window.ChatGlobals.socket.emit("joinChat", this.currentChatId);
 
-    const selectedOption = this.elements.userDropdown.options[this.elements.userDropdown.selectedIndex];
-    this.updateChatHeader(selectedOption.textContent);
+        const selectedOption = this.elements.userDropdown.options[this.elements.userDropdown.selectedIndex];
+        this.updateChatHeader(selectedOption.textContent);
 
-    await this.loadMessages();
+        await this.loadMessages();
 
-  } catch (err) {
-    console.error("❌ Error creating/switching chat:", err);
-    alert(err.message);
-  }
-},
+      } catch (err) {
+        console.error("❌ Error creating/switching chat:", err);
+        alert(err.message);
+      }
+    },
 
     async loadMessages() {
       try {
@@ -267,7 +267,7 @@
       const div = document.createElement("div");
       const isMine = msg.sender._id === this.currentUser._id;
 
-     div.className = `message p-2 rounded mb-2 ${isMine ? 'text-light align-self-end text-end' : 'text-light align-self-start text-start'}`;
+      div.className = `message p-2 rounded mb-2 ${isMine ? 'text-light align-self-end text-end' : 'text-light align-self-start text-start'}`;
       div.dataset.id = msg._id;
 
       const name = msg.sender.name;
@@ -285,7 +285,7 @@
       let messageHTML = `<strong>${name}:</strong> `;
 
       if (msg.content && msg.content.startsWith("/uploads/")) {
-        const fullImageUrl = `${import.meta.env.VITE_BACKEND_URL}${msg.content}`;
+        const fullImageUrl = `${window.BACKEND_URL}${msg.content}`;
         const fileName = msg.content.split("/").pop();
 
         messageHTML += `
@@ -379,7 +379,7 @@
         const fileName = event.target.getAttribute('data-filename');
         if (fileName) {
           const downloadLink = document.createElement('a');
-          downloadLink.href = `${import.meta.env.VITE_BACKEND_URL}/download/${fileName}`;
+          downloadLink.href = `${window.BACKEND_URL}/download/${fileName}`;
 
           downloadLink.setAttribute('download', fileName);
           document.body.appendChild(downloadLink);
@@ -501,7 +501,7 @@
 
     if (modal && previewImage && downloadLink) {
       previewImage.src = imageUrl;
-      downloadLink.href = `${import.meta.env.VITE_BACKEND_URL}/download/${fileName}?t=${Date.now()}`;
+      downloadLink.href = `${window.BACKEND_URL}/download/${fileName}?t=${Date.now()}`;
 
       downloadLink.setAttribute("download", fileName);
       modal.style.display = 'flex';
