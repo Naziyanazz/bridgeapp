@@ -15,7 +15,7 @@
 
   // ✅ Initialize socket connection only once
   if (!window.ChatGlobals) {
-    const API_URL = "http://localhost:5000/api";
+    const API_URL = import.meta.env.VITE_BACKEND_URL + "/api";
     const socket = io(API_URL.replace("/api", ""), {
       withCredentials: true,
       auth: { token: localStorage.getItem("token") }
@@ -285,7 +285,7 @@
       let messageHTML = `<strong>${name}:</strong> `;
 
       if (msg.content && msg.content.startsWith("/uploads/")) {
-        const fullImageUrl = `http://localhost:5000${msg.content}`;
+        const fullImageUrl = `${import.meta.env.VITE_BACKEND_URL}${msg.content}`;
         const fileName = msg.content.split("/").pop();
 
         messageHTML += `
@@ -379,7 +379,8 @@
         const fileName = event.target.getAttribute('data-filename');
         if (fileName) {
           const downloadLink = document.createElement('a');
-          downloadLink.href = `http://localhost:5000/download/${fileName}`;
+          downloadLink.href = `${import.meta.env.VITE_BACKEND_URL}/download/${fileName}`;
+
           downloadLink.setAttribute('download', fileName);
           document.body.appendChild(downloadLink);
           downloadLink.click();
@@ -500,7 +501,8 @@
 
     if (modal && previewImage && downloadLink) {
       previewImage.src = imageUrl;
-      downloadLink.href = `http://localhost:5000/download/${fileName}?t=${Date.now()}`;
+      downloadLink.href = `${import.meta.env.VITE_BACKEND_URL}/download/${fileName}?t=${Date.now()}`;
+
       downloadLink.setAttribute("download", fileName);
       modal.style.display = 'flex';
     }
