@@ -9,6 +9,21 @@ const path = require('path');
 dotenv.config();
 connectDB();
 const app = express();
+const allowedOrigins = [
+  "http://localhost:5173",                      // for local dev
+  "https://bridgeapp-two.vercel.app",           // your Vercel domain
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+}));
 
 app.use(express.json());
 
@@ -44,16 +59,6 @@ app.use((err, req, res, next) => {
 
 
 const server = app.listen(process.env.PORT || 5000, () => console.log('🚀 Server started'));
-
-const allowedOrigins = [
-  "http://localhost:5173",                           // ✅ for local dev
-  "https://bridgeapp-two.vercel.app",                // ✅ your Vercel frontend
-];
-
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-}));
 
 const io = require('socket.io')(server, {
   cors: {
