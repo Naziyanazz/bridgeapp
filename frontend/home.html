@@ -124,13 +124,12 @@
         top: 0;
         height: 100%;
         z-index: 100;
+        width: 260px;
         transform: translateX(0);
       }
 
       #sidebar.collapsed {
         transform: translateX(-100%);
-        width: 260px;
-        padding: 1rem;
       }
 
       #main {
@@ -169,7 +168,7 @@
     <!-- Main area -->
     <div id="main">
       <div id="topbar">
-        <button id="toggleSidebarBtn" class="btn btn-sm btn-outline-light">
+        <button id="toggleSidebarBtn" class="btn btn-sm btn-outline-light d-md-inline order-md-0 order-1 ms-auto ms-md-0">
           <i class="bi bi-layout-sidebar"></i>
         </button>
         <h5 class="mb-0">Secure Chat</h5>
