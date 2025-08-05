@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/chat", "destination": "/pages/chat.html" },
+    { "source": "/home", "destination": "/home.html" },
+    { "source": "/", "destination": "/index.html" }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
+}

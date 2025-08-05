@@ -30,60 +30,72 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleActiveClass(showRegisterBtn, showLoginBtn);
     });
 
-    // ✅ Show messages
-    const showMessage = (message, type = "success") => {
-        authMessage.innerHTML = `
-      <div class="alert alert-${type} alert-dismissible fade show" role="alert w-25">
+
+   const showMessage = (message, type = "success") => {
+    authMessage.innerHTML = `
+      <div class="alert alert-${type} alert-dismissible fade show w-100" role="alert">
         ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert w-25" aria-label="Close"></button>
+        <button type="button" class="btn-close w-100" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
     `;
-    };
+};
+loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+    const loginBtn = document.getElementById("login-submit-btn");
+    const spinner = loginBtn.querySelector(".spinner-border");
+    const btnText = loginBtn.querySelector(".btn-text");
 
-    // ✅ Handle Login
-    loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = document.getElementById("login-email").value;
-        const password = document.getElementById("login-password").value;
+    // Show spinner
+    spinner.classList.remove("d-none");
+    btnText.textContent = "Signing in...";
+    loginBtn.disabled = true;
 
-        try {
-            const res = await fetch(`${API_URL}/auth/login`, {
+    try {
+        const res = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            localStorage.setItem("token", data.token); // Save token
+            showMessage("Login successful!", "success");
+
+            const chatRes = await fetch(`${API_URL}/chats`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${data.token}`,
+                },
+                body: JSON.stringify({ userId: data._id }),
             });
 
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem("token", data.token); // Save token
-                showMessage("Login successful!", "success");
-
-                // Auto-create or fetch chat with the user themself for simplicity
-                const chatRes = await fetch(`${API_URL}/chats`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${data.token}`,
-                    },
-                    body: JSON.stringify({ userId: data._id }), // assuming `data.user` is returned
-                });
-
-                const chatData = await chatRes.json();
-                if (chatRes.ok) {
-                    localStorage.setItem("chatId", chatData._id); // Save chat ID
-                    setTimeout(() => {
-                        window.location.href = "home.html";
-                    }, 1000);
-                } else {
-                    showMessage("Chat creation failed", "danger");
-                }
+            const chatData = await chatRes.json();
+            if (chatRes.ok) {
+                localStorage.setItem("chatId", chatData._id); // Save chat ID
+                setTimeout(() => {
+                    window.location.href = "home.html";
+                }, 1000);
             } else {
-                showMessage(data.message || "Login failed.", "danger");
+                showMessage("Chat creation failed", "danger");
             }
-        } catch (err) {
-            showMessage("Error: " + err.message, "danger");
+        } else {
+            showMessage(data.message || "Login failed.", "danger");
         }
-    });
+    } catch (err) {
+        showMessage("Error: " + err.message, "danger");
+    } finally {
+        // Hide spinner
+        spinner.classList.add("d-none");
+        btnText.textContent = "Sign In";
+        loginBtn.disabled = false;
+    }
+});
+
 
     // ✅ Handle Register
     registerForm.addEventListener("submit", async (e) => {
