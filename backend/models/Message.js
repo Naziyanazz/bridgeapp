@@ -20,9 +20,13 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  replyTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+  },
   deletionMode: {
     type: String,
-    enum: ['24h'], // We are now only using 24h deletion
+    enum: ['24h'],
     default: '24h',
   },
   readBy: [
@@ -31,11 +35,11 @@ const messageSchema = new mongoose.Schema({
       ref: 'User',
     }
   ],
-   hiddenFrom: [{
-  type: mongoose.Schema.Types.ObjectId,
-  ref: 'User',
-  default: []
-}]
+  hiddenFrom: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: []
+  }]
 }, {
   timestamps: true,
 });

@@ -1,4 +1,4 @@
-// ✅ Fixed Chat.js with proper cleanup and initialization
+// ✅ Fixed Chat.js with proper cleanup and initialization + Reply Functionality
 (function () {
   'use strict';
 
@@ -36,6 +36,7 @@
     receiverInput: { chatId: null, receiverId: null },
     isTyping: false,
     typingTimeout: null,
+    replyingTo: null, // ✅ New: Store the message being replied to
 
     // DOM elements (will be set during init)
     elements: {},
@@ -53,7 +54,8 @@
         chatHeader: document.getElementById("chatHeader"),
         typingIndicator: document.getElementById("typingIndicator"),
         imageInput: document.getElementById('imageInput'),
-        imageButton: document.getElementById('imageButton')
+        imageButton: document.getElementById('imageButton'),
+        replyPreview: document.getElementById('replyPreview') // ✅ New: Reply preview element
       };
 
       // Check if required elements exist
@@ -105,7 +107,7 @@
       // Typing indicator
       msgInput.addEventListener("input", () => this.handleTyping());
 
-      // Image download and preview
+      // Image download and preview + Reply functionality
       messageContainer.addEventListener('click', (event) => this.handleMessageContainerClick(event));
     },
 
@@ -267,7 +269,7 @@
       const div = document.createElement("div");
       const isMine = msg.sender._id === this.currentUser._id;
 
-      div.className = `message p-2 rounded mb-2 ${isMine ? 'text-light align-self-end text-end' : 'text-light align-self-start text-start'}`;
+      div.className = `message p-2 rounded mb-2 position-relative ${isMine ? 'text-light align-self-end text-end' : 'text-light align-self-start text-start'}`;
       div.dataset.id = msg._id;
 
       const name = msg.sender.name;
@@ -282,7 +284,24 @@
         }
       }
 
-      let messageHTML = `<strong>${name}:</strong> `;
+      let messageHTML = '';
+
+      // ✅ Updated: Display replied message if exists (BEFORE sender name)
+      if (msg.replyTo) {
+        const replyContent = msg.replyTo.content?.startsWith('/uploads/')
+          ? '<i class="bi bi-image-fill me-1"></i> Image'
+          : msg.replyTo.content || 'Message unavailable';
+
+        messageHTML += `
+    <div class="border-start border-4 border-info ps-2 mb-1 small">
+      <div class="fw-bold">${msg.replyTo.sender?.name || 'Unknown'}</div>
+      <div class="text-truncate" style="max-width: 200px;">${replyContent}</div>
+    </div>
+  `;
+      }
+
+
+      messageHTML += `<strong>${name}:</strong> `;
 
       if (msg.content && msg.content.startsWith("/uploads/")) {
         const fullImageUrl = `${window.BACKEND_URL}${msg.content}`;
@@ -304,21 +323,98 @@
         messageHTML += msg.content;
       }
 
-      messageHTML += `
-  <div class="meta d-flex justify-content-end align-items-center gap-1 mt-1">
-    <span class="time text-muted">${ts}</span>
-    <span class="tick">${ticks}</span>
-  </div>
-`;
+      // ✅ New: Add reply button (only show on hover/tap)
+      const replyBtn = `
+        <button class="btn btn-sm btn-outline-light position-absolute reply-btn d-none" 
+                style="top: 5px; ${isMine ? 'left' : 'right'}: 5px;" 
+                data-msg-id="${msg._id}" 
+                data-msg-content="${msg.content || ''}"
+                data-sender-name="${name}"
+                title="Reply">
+          <i class="bi bi-reply-fill"></i>
+        </button>
+      `;
 
+      messageHTML += `
+        ${replyBtn}
+        <div class="meta d-flex justify-content-end align-items-center gap-1 mt-1">
+          <span class="time">${ts}</span>
+          <span class="tick">${ticks}</span>
+        </div>
+      `;
 
       div.innerHTML = messageHTML;
+
+      // ✅ New: Show/hide reply button on hover (desktop) and tap (mobile)
+      div.addEventListener('mouseenter', () => {
+        const replyBtn = div.querySelector('.reply-btn');
+        if (replyBtn) replyBtn.classList.remove('d-none');
+      });
+
+      div.addEventListener('mouseleave', () => {
+        const replyBtn = div.querySelector('.reply-btn');
+        if (replyBtn) replyBtn.classList.add('d-none');
+      });
+
+      // ✅ Mobile: Show reply button on long press
+      let pressTimer;
+      div.addEventListener('touchstart', (e) => {
+        pressTimer = setTimeout(() => {
+          const replyBtn = div.querySelector('.reply-btn');
+          if (replyBtn) {
+            replyBtn.classList.remove('d-none');
+            setTimeout(() => replyBtn.classList.add('d-none'), 3000); // Hide after 3s
+          }
+        }, 500);
+      });
+
+      div.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+      });
+
       this.elements.messageContainer.appendChild(div);
 
       if (!isMine) {
         window.ChatGlobals.socket.emit("message-read", msg._id);
         console.log("📨 Emitted message-read:", msg._id);
       }
+    },
+
+    // ✅ New: Show reply preview
+    showReplyPreview(messageId, content, senderName) {
+      this.replyingTo = { id: messageId, content, senderName };
+
+      const previewContent = content?.startsWith('/uploads/') ?
+        '<i class="bi bi-image"></i> Image' :
+        (content || 'Message');
+
+      this.elements.replyPreview.innerHTML = `
+        <div class="bg-dark p-2 rounded border-start border-3 border-primary">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <small class="text-muted">
+                <i class="bi bi-reply-fill"></i> Replying to ${senderName}
+              </small>
+              <div class="text-truncate text-light mt-1" style="max-height: 40px; overflow: hidden;">
+                ${previewContent}
+              </div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="window.ChatApp.cancelReply()">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+      `;
+
+      this.elements.replyPreview.style.display = 'block';
+      this.elements.msgInput.focus();
+    },
+
+    // ✅ New: Cancel reply
+    cancelReply() {
+      this.replyingTo = null;
+      this.elements.replyPreview.style.display = 'none';
+      this.elements.replyPreview.innerHTML = '';
     },
 
     async handleImageUpload() {
@@ -330,6 +426,11 @@
       formData.append('image', file);
       formData.append('chatId', this.currentChatId);
       formData.append('receiver', this.receiverInput.receiverId);
+
+      // ✅ New: Add reply data if replying
+      if (this.replyingTo) {
+        formData.append('replyToId', this.replyingTo.id);
+      }
 
       try {
         const res = await fetch(`${window.ChatGlobals.API_URL}/messages/upload`, {
@@ -345,6 +446,9 @@
 
         this.displayMessage(message);
         window.ChatGlobals.socket.emit('sendMessage', message);
+
+        // ✅ Clear reply after sending
+        this.cancelReply();
       } catch (err) {
         console.error('❌ Image upload failed:', err);
         alert('Image upload failed.');
@@ -374,6 +478,17 @@
     },
 
     handleMessageContainerClick(event) {
+      // ✅ New: Handle reply button clicks
+      if (event.target.classList.contains('reply-btn') || event.target.closest('.reply-btn')) {
+        const btn = event.target.classList.contains('reply-btn') ? event.target : event.target.closest('.reply-btn');
+        const messageId = btn.getAttribute('data-msg-id');
+        const content = btn.getAttribute('data-msg-content');
+        const senderName = btn.getAttribute('data-sender-name');
+
+        this.showReplyPreview(messageId, content, senderName);
+        return;
+      }
+
       // Download button
       if (event.target.classList.contains('download-btn')) {
         const fileName = event.target.getAttribute('data-filename');
@@ -423,6 +538,11 @@
         content: msgText
       };
 
+      // ✅ New: Add reply data if replying
+      if (this.replyingTo) {
+        payload.replyToId = this.replyingTo.id;
+      }
+
       try {
         const res = await fetch(`${window.ChatGlobals.API_URL}/messages`, {
           method: "POST",
@@ -446,6 +566,9 @@
         this.elements.msgInput.value = "";
         this.isTyping = false;
         window.ChatGlobals.socket.emit("stopTyping", { chatId: this.currentChatId });
+
+        // ✅ Clear reply after sending
+        this.cancelReply();
       } catch (err) {
         console.error("❌ Error sending message:", err);
       }

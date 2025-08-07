@@ -24,7 +24,7 @@ const upload = multer({ storage });
 // ✅ Send text message
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { chatId, content, receiver } = req.body;
+    const { chatId, content, receiver, replyToId } = req.body;
     if (!chatId || !content) {
       return res.status(400).json({ message: 'Chat ID and content required' });
     }
@@ -41,22 +41,31 @@ router.post('/', authenticate, async (req, res) => {
       sender: req.user._id,
       receiver: receiverId,
       content,
+      replyTo: replyToId || null,
       readBy: [req.user._id],
     });
 
-    const populated = await msg.populate('sender receiver chat');
+    const populated = await msg.populate([
+      { path: 'sender', select: 'name' },
+      { path: 'receiver', select: 'name' },
+      { path: 'chat' },
+      {
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'name' }
+      }
+    ]);
     res.status(201).json(populated);
+
   } catch (err) {
     console.error('❌ Error sendMessage:', err);
     res.status(500).json({ message: 'Message sending failed' });
   }
 });
 
-// ✅ Upload image message
+// ✅ Upload image message with reply support
 router.post('/upload', authenticate, upload.single('image'), async (req, res) => {
   try {
-    console.log('📥 Upload req.body:', req.body, 'file:', req.file);
-    const { chatId, receiver } = req.body;
+    const { chatId, receiver, replyToId } = req.body;
     if (!chatId || !receiver || !req.file) {
       return res.status(400).json({ message: 'Missing chatId, receiver, or image file' });
     }
@@ -70,15 +79,26 @@ router.post('/upload', authenticate, upload.single('image'), async (req, res) =>
       image: imageUrl,
       content: imageUrl,
       readBy: [req.user._id],
+      replyTo: replyToId || null,
     });
 
-    const populated = await msg.populate('sender receiver chat');
+    const populated = await msg.populate([
+      { path: 'sender', select: 'name' },
+      { path: 'receiver', select: 'name' },
+      { path: 'chat' },
+      {
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'name' }
+      }
+    ]);
+
     res.status(201).json(populated);
   } catch (err) {
     console.error('❌ Error upload:', err);
     res.status(500).json({ message: 'Image upload failed' });
   }
 });
+
 
 router.delete('/soft-delete/:chatId', authenticate, async (req, res) => {
   try {
@@ -108,7 +128,12 @@ router.get('/:chatId', authenticate, async (req, res) => {
       chat: chatId,
       createdAt: { $gte: twentyFourHoursAgo },  // only messages within last 24 hours
       hiddenFrom: { $ne: userId }               // exclude hidden messages
-    }).populate('sender', 'name');
+    })
+      .populate('sender', 'name')
+      .populate({
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'name' }
+      });
 
     res.json(messages);
   } catch (err) {

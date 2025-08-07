@@ -33,9 +33,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
    const showMessage = (message, type = "success") => {
     authMessage.innerHTML = `
-      <div class="alert alert-${type} alert-dismissible fade show w-100" role="alert">
+      <div class="alert alert-${type} alert-dismissible fade show" role="alert">
         ${message}
-        <button type="button" class="btn-close w-100" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
     `;
 };
