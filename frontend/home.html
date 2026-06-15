@@ -177,7 +177,6 @@
       </div>
 
       <div id="content" class="px-2 px-md-5">
-        <!-- 👇 This section hides on small screens -->
         <div class="user-info mb-3 d-none d-md-block">
 
         </div>
@@ -188,7 +187,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="${window.BACKEND_URL}/socket.io/socket.io.js"></script>
   <script>
     const toggleBtn = document.getElementById("toggleSidebarBtn");
     const sidebar = document.getElementById("sidebar");
